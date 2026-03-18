@@ -26,10 +26,11 @@ async function bootstrap() {
 
   // Swagger documentation
   const config = new DocumentBuilder()
-    .setTitle('API Documentation')
-    .setDescription('The API description')
+    .setTitle('Green Gorilla Trails API Documentation')
+    .setDescription(
+      'A professional content management system for tourism operations specializing in Rwanda gorilla trekking and East Africa safaris.',
+    )
     .setVersion('1.0')
-    .addTag('api')
     .addBearerAuth(
       {
         type: 'http',
@@ -43,7 +44,7 @@ async function bootstrap() {
     )
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
