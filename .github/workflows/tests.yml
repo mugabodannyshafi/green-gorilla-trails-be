@@ -1,10 +1,10 @@
-name: Tests
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, development ]
+    branches: [main, development]
   pull_request:
-    branches: [ main, development ]
+    branches: [main, development]
 
 jobs:
   test:
@@ -15,61 +15,78 @@ jobs:
         node-version: [18.x, 20.x]
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
+      # Setup Node
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
+      # Install pnpm CLI
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      # Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Run linter
-      run: pnpm run lint
+      # Lint
+      - name: Run linter
+        run: pnpm run lint
 
-    - name: Run unit tests
-      run: pnpm run test:cov
+      # Unit tests
+      - name: Run unit tests
+        run: pnpm run test:cov
 
-    - name: Run e2e tests
-      run: pnpm run test:e2e
+      # End-to-end tests
+      - name: Run e2e tests
+        run: pnpm run test:e2e
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage/coverage-final.json
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      # Upload coverage to Codecov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/coverage-final.json
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
 
   build:
     runs-on: ubuntu-latest
     needs: test
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Use Node.js 18.x
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18.x
-        cache: 'pnpm'
+      # Setup Node
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+          cache: 'pnpm'
 
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
+      # Install pnpm CLI
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
 
-    - name: Build application
-      run: pnpm run build
+      # Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-    - name: Check build output
-      run: |
-        if [ ! -d "dist" ]; then
-          echo "Build failed: dist directory not found"
-          exit 1
-        fi
+      # Build application
+      - name: Build application
+        run: pnpm run build
+
+      # Check build output
+      - name: Check build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build failed: dist directory not found"
+            exit 1
+          fi
