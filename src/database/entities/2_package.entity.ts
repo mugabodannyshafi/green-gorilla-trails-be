@@ -1,5 +1,6 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { EntityModel } from './entityModel';
+import { Destination } from './3_destination.entity';
 import { PackageInclusion } from './7_package_inclusion.entity';
 import { PackageExclusion } from './8_package_exclusion.entity';
 
@@ -13,6 +14,19 @@ export enum PackageStatus {
 export class Package extends EntityModel {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
+
+  @Column({
+    type: 'bigint',
+    nullable: false,
+  })
+  destination_id: number;
+
+  @ManyToOne(() => Destination, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'destination_id' })
+  destination: Destination;
 
   @OneToMany(() => PackageInclusion, (inclusion) => inclusion.package)
   inclusions: PackageInclusion[];

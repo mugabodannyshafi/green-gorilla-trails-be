@@ -1,10 +1,14 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { EntityModel } from './entityModel';
+import { Package } from './2_package.entity';
 
 @Entity('Destination')
 export class Destination extends EntityModel {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
+
+  @OneToMany(() => Package, (pkg) => pkg.destination)
+  packages: Package[];
 
   @Column({
     type: 'varchar',
