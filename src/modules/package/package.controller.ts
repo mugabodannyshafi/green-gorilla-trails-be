@@ -131,6 +131,16 @@ export class PackageController extends BaseController {
     return await this.packageService.getAllPackages(pagination, status, destination);
   }
 
+  @Get(':id/similar')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get similar packages' })
+  @ApiParam({ name: 'id', type: Number, description: 'Package id' })
+  @ApiResponse({ status: 200, description: 'Similar packages retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request - package not found' })
+  async getSimilarPackages(@Param('id', ParseIntPipe) id: number) {
+    return await this.packageService.getSimilarPackages(id, 5);
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a big package' })

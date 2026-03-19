@@ -158,6 +158,112 @@ export class PackageService extends BaseService {
     );
   }
 
+  async getSimilarPackages(packageId: number, limit = 5): Promise<any[]> {
+    const basePackage = await this.entityManager.findOne(Package, {
+      where: { id: packageId },
+      relations: { destination: true },
+    });
+
+    if (!basePackage) {
+      throw new BadRequestException('Package not found');
+    }
+
+    const destinationId = basePackage.destination_id;
+
+    const candidatePackages = await this.entityManager.find(Package, {
+      where: {
+        destination_id: destinationId,
+        status: PackageStatus.PUBLISHED,
+      },
+      relations: { destination: true },
+      order: { id: 'DESC' },
+      take: limit + 1, // Fetch one extra, then filter out the base package.
+    });
+
+    const similarPackages = candidatePackages
+      .filter((pkg) => Number(pkg.id) !== Number(packageId))
+      .slice(0, limit);
+
+    if (similarPackages.length === 0) return [];
+
+    const packageIds = similarPackages.map((pkg) => pkg.id);
+    const [allInclusions, allExclusions, allGalleryImages, allItineraryDays] =
+      await Promise.all([
+        this.entityManager.find(PackageInclusion, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageExclusion, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageGalleryImage, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageItineraryDay, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', day_number: 'ASC' },
+        }),
+      ]);
+
+    const itineraryDayIds = allItineraryDays.map((day) => day.id);
+    const allAccommodations =
+      itineraryDayIds.length > 0
+        ? await this.entityManager.find(PackageDayAccommodation, {
+            where: { itinerary_day_id: In(itineraryDayIds) },
+            order: { itinerary_day_id: 'ASC', tier: 'ASC', name: 'ASC' },
+          })
+        : [];
+
+    const inclusionsByPackage = new Map<number, PackageInclusion[]>();
+    const exclusionsByPackage = new Map<number, PackageExclusion[]>();
+    const galleryByPackage = new Map<number, PackageGalleryImage[]>();
+    const itineraryByPackage = new Map<number, PackageItineraryDay[]>();
+    const accommodationsByDay = new Map<number, PackageDayAccommodation[]>();
+
+    for (const inclusion of allInclusions) {
+      const existing = inclusionsByPackage.get(inclusion.package_id) ?? [];
+      existing.push(inclusion);
+      inclusionsByPackage.set(inclusion.package_id, existing);
+    }
+
+    for (const exclusion of allExclusions) {
+      const existing = exclusionsByPackage.get(exclusion.package_id) ?? [];
+      existing.push(exclusion);
+      exclusionsByPackage.set(exclusion.package_id, existing);
+    }
+
+    for (const image of allGalleryImages) {
+      const existing = galleryByPackage.get(image.package_id) ?? [];
+      existing.push(image);
+      galleryByPackage.set(image.package_id, existing);
+    }
+
+    for (const day of allItineraryDays) {
+      const existing = itineraryByPackage.get(day.package_id) ?? [];
+      existing.push(day);
+      itineraryByPackage.set(day.package_id, existing);
+    }
+
+    for (const acc of allAccommodations) {
+      const existing = accommodationsByDay.get(acc.itinerary_day_id) ?? [];
+      existing.push(acc);
+      accommodationsByDay.set(acc.itinerary_day_id, existing);
+    }
+
+    return similarPackages.map((pkg) =>
+      this.buildPackagePayload(
+        pkg,
+        inclusionsByPackage.get(pkg.id) ?? [],
+        exclusionsByPackage.get(pkg.id) ?? [],
+        galleryByPackage.get(pkg.id) ?? [],
+        itineraryByPackage.get(pkg.id) ?? [],
+        accommodationsByDay,
+      ),
+    );
+  }
+
   async getAllPackages(
     pagination: PaginationData,
     status?: PackageStatus,
