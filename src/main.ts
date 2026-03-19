@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from '@rwanda360/rwanda360-service-sdk';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,27 +26,25 @@ async function bootstrap() {
   );
 
   // Swagger documentation
-  const config = new DocumentBuilder()
-    .setTitle('Green Gorilla Trails API Documentation')
-    .setDescription(
-      'A professional content management system for tourism operations specializing in Rwanda gorilla trekking and East Africa safaris.',
-    )
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Green Gorilla Trails API Documentation')
+      .setDescription(
+        'A professional content management system for tourism operations specializing in Rwanda gorilla trekking and East Africa safaris.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    app.useGlobalFilters(new AllExceptionsFilter());
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        operationsSorter: 'alpha',
+        filter: true,
+        displayOperationId: true,
       },
-      'JWT-auth',
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
+    });
+  }
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}`);
