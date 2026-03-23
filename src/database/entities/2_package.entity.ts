@@ -3,6 +3,9 @@ import { EntityModel } from './entityModel';
 import { Destination } from './3_destination.entity';
 import { PackageInclusion } from './7_package_inclusion.entity';
 import { PackageExclusion } from './8_package_exclusion.entity';
+import { PackageItineraryDay } from './5_package_itinerary_day.entity';
+import { PackagePricing } from './16_package_pricing.entity';
+import { PackageAccommodationOption } from './17_package_accommodation_option.entity';
 
 export enum PackageStatus {
   DRAFT = 'DRAFT',
@@ -34,6 +37,15 @@ export class Package extends EntityModel {
   @OneToMany(() => PackageExclusion, (exclusion) => exclusion.package)
   exclusions: PackageExclusion[];
 
+  @OneToMany(() => PackageItineraryDay, (itineraryDay) => itineraryDay.package)
+  itinerary_days: PackageItineraryDay[];
+
+  @OneToMany(() => PackagePricing, (pricing) => pricing.package)
+  pricing: PackagePricing[];
+
+  @OneToMany(() => PackageAccommodationOption, (option) => option.package)
+  accommodationOptions: PackageAccommodationOption[];
+
   @Column({
     type: 'varchar',
     length: 255,
@@ -63,6 +75,12 @@ export class Package extends EntityModel {
   description: string;
 
   @Column({
+    type: 'text',
+    nullable: true,
+  })
+  overview?: string;
+
+  @Column({
     type: 'varchar',
     length: 255,
     nullable: true,
@@ -74,6 +92,26 @@ export class Package extends EntityModel {
     nullable: false,
   })
   duration_days: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+    default: 1,
+  })
+  min_pax: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+    default: 6,
+  })
+  max_pax: number;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  travel_year: number;
 
   @Column({
     type: 'varchar',

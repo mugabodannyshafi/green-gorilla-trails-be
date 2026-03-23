@@ -5,6 +5,7 @@ import { AdminSeeder } from './database/seeders/admin.seeder';
 import { BlogCategorySeeder } from './database/seeders/blog-category.seeder';
 import { BlogTagSeeder } from './database/seeders/blog-tag.seeder';
 import { DestinationSeeder } from './database/seeders/destination.seeder';
+import { PackageSeeder } from './database/seeders/package.seeder';
 
 @Injectable()
 export class AppService {
@@ -13,6 +14,7 @@ export class AppService {
     protected readonly db: EntityManager,
     protected readonly adminSeeder: AdminSeeder,
     protected readonly destinationSeeder: DestinationSeeder,
+    protected readonly packageSeeder: PackageSeeder,
     protected readonly blogCategorySeeder: BlogCategorySeeder,
     protected readonly blogTagSeeder: BlogTagSeeder,
   ) {}
@@ -23,6 +25,7 @@ export class AppService {
 
   async onApplicationBootstrap() {
     await this.destinationSeeder.run(this.db);
+    await this.packageSeeder.run(this.db);
     await this.blogCategorySeeder.run(this.db);
     await this.blogTagSeeder.run(this.db);
     await this.adminSeeder.run(this.db);

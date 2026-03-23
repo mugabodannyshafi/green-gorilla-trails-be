@@ -6,7 +6,9 @@ import { PackageInclusion } from '../../database/entities/7_package_inclusion.en
 import { PackageExclusion } from '../../database/entities/8_package_exclusion.entity';
 import { PackageGalleryImage } from '../../database/entities/4_package_gallery_image.entity';
 import { PackageItineraryDay } from '../../database/entities/5_package_itinerary_day.entity';
-import { PackageDayAccommodation } from '../../database/entities/6_package_day_accommodation.entity';
+import { PackagePricing } from '../../database/entities/16_package_pricing.entity';
+import { PackageAccommodationOption } from '../../database/entities/17_package_accommodation_option.entity';
+import { PackageActivity } from '../../database/entities/18_package_activity.entity';
 import { PackageController } from './package.controller';
 import { PackageService } from './package.service';
 
@@ -19,7 +21,9 @@ import { PackageService } from './package.service';
       PackageExclusion,
       PackageGalleryImage,
       PackageItineraryDay,
-      PackageDayAccommodation,
+      PackagePricing,
+      PackageAccommodationOption,
+      PackageActivity,
     ]),
   ],
   controllers: [PackageController],

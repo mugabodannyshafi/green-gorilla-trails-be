@@ -1,17 +1,24 @@
 import {
   IsArray,
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsBoolean,
   IsEnum,
+  IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   MaxLength,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { PackageStatus } from '../../../database/entities/2_package.entity';
-import { AccommodationTier } from '../../../database/entities/6_package_day_accommodation.entity';
+import { PackageAccommodationTier } from '../../../database/entities/17_package_accommodation_option.entity';
+import { MealType } from '../../../database/entities/18_package_activity.entity';
 
 export class CreatePackageInclusionDto {
   @ApiProperty({
@@ -28,7 +35,7 @@ export class CreatePackageInclusionDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(1)
+  @Min(0)
   sort_order?: number;
 }
 
@@ -47,73 +54,128 @@ export class CreatePackageExclusionDto {
   })
   @IsOptional()
   @IsNumber()
-  @Min(1)
+  @Min(0)
   sort_order?: number;
 }
 
-export class CreatePackageDayAccommodationDto {
+export class CreatePackageAccommodationOptionDto {
   @ApiProperty({
-    enum: AccommodationTier,
-    description: 'Accommodation tier (MIDRANGE | LUXURY | HIGH_END)',
-    example: AccommodationTier.LUXURY,
+    enum: PackageAccommodationTier,
+    description: 'Accommodation tier (STANDARD | MIDRANGE | LUXURY)',
+    example: PackageAccommodationTier.MIDRANGE,
   })
-  @IsEnum(AccommodationTier)
-  tier: AccommodationTier;
+  @IsEnum(PackageAccommodationTier)
+  tier: PackageAccommodationTier;
 
   @ApiProperty({
-    description: 'Name of the lodge or camp',
+    description: 'Hotel/lodge name for the selected tier',
     maxLength: 255,
-    example: 'Bisate Lodge',
+    example: 'Five Volcanoes Boutique Hotel',
   })
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name: string;
+}
+
+export class CreatePackagePricingDto {
+  @ApiProperty({
+    enum: PackageAccommodationTier,
+    description: 'Accommodation tier for this pricing row',
+    example: PackageAccommodationTier.STANDARD,
+  })
+  @IsEnum(PackageAccommodationTier)
+  tier: PackageAccommodationTier;
+
+  @ApiProperty({
+    description: 'Number of guests (2-6), nullable when is_single_supplement = true',
+    required: false,
+    example: 2,
+  })
+  @ValidateIf((o: CreatePackagePricingDto) => !o.is_single_supplement)
+  @IsInt()
+  @Min(2)
+  pax?: number;
+
+  @ApiProperty({
+    description: 'Price value as decimal string',
+    example: '1353.00',
+  })
+  @IsString()
+  @IsNotEmpty()
+  price: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether this row is a single supplement (SSR)',
+    default: false,
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_single_supplement?: boolean;
+}
+
+export class CreatePackageActivityDto {
+  @ApiProperty({
+    description: 'Activity name',
+    maxLength: 255,
+    example: 'Kigali city tour',
+  })
+  @IsString()
+  @IsNotEmpty()
   @MaxLength(255)
   name: string;
 }
 
 export class CreatePackageItineraryDayDto {
   @ApiProperty({
-    description: 'Sequential day number in the itinerary',
+    description: 'Sequential day number in itinerary',
+    minimum: 1,
     example: 1,
   })
-  @IsNumber()
+  @IsInt()
   @Min(1)
   day_number: number;
 
   @ApiProperty({
-    description: 'Day heading',
+    description: 'Day title',
     maxLength: 255,
-    example: 'Arrival in Kigali & transfer to Volcanoes National Park',
+    example: 'Arrival in Kigali',
   })
   @IsString()
+  @IsNotEmpty()
   @MaxLength(255)
   title: string;
 
   @ApiProperty({
-    description: 'Full description of the day’s activities',
-    example:
-      'Meet at Kigali International Airport. Drive to Musanze with optional cultural stop. Briefing at park headquarters. Overnight near the park.',
+    description: 'Day description',
+    example: 'Pickup at Kigali airport and transfer to Musanze.',
   })
   @IsString()
+  @IsNotEmpty()
   description: string;
 
   @ApiPropertyOptional({
-    description: 'Meals included this day',
-    example: 'Lunch, Dinner',
-  })
-  @IsOptional()
-  @IsString()
-  meals_text?: string;
-
-  @ApiPropertyOptional({
-    type: [CreatePackageDayAccommodationDto],
-    description: 'Lodges or camps for this night (by tier)',
-    example: [{ tier: 'LUXURY', name: 'Bisate Lodge' }],
+    description: 'Included meals for the day',
+    enum: MealType,
+    isArray: true,
+    example: [MealType.LUNCH, MealType.DINNER],
   })
   @IsOptional()
   @IsArray()
+  @IsEnum(MealType, { each: true })
+  meals?: MealType[];
+
+  @ApiProperty({
+    type: [CreatePackageActivityDto],
+    description: 'Structured list of activities',
+    example: [{ name: 'Drive to Volcanoes National Park' }],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
-  @Type(() => CreatePackageDayAccommodationDto)
-  accommodations?: CreatePackageDayAccommodationDto[];
+  @Type(() => CreatePackageActivityDto)
+  activities: CreatePackageActivityDto[];
 }
 
 export class CreatePackageDto {
@@ -134,7 +196,7 @@ export class CreatePackageDto {
   title: string;
 
   @ApiPropertyOptional({
-    description: 'URL-friendly unique slug. If omitted, derived from title.',
+    description: 'URL-friendly unique slug. If omitted, derived from title',
     maxLength: 255,
     example: '3-day-rwanda-gorilla-trekking',
   })
@@ -144,21 +206,19 @@ export class CreatePackageDto {
   slug?: string;
 
   @ApiPropertyOptional({
-    description: 'Brief tagline or summary',
-    maxLength: 255,
-    example: 'Track mountain gorillas in Volcanoes National Park with expert guides.',
+    description: 'Package overview text',
+    example: 'A Rwanda safari experience with gorilla trekking and cultural highlights.',
   })
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  short_description?: string;
+  overview?: string;
 
   @ApiProperty({
-    description: 'Full package description (supports multi-paragraph text)',
-    example:
-      'This 3-day adventure takes you into Volcanoes National Park for an unforgettable encounter with mountain gorillas. Includes permits, accommodation, transfers from Kigali, and full board. Ideal for wildlife enthusiasts and first-time visitors to Rwanda.',
+    description: 'Full package description',
+    example: 'This 3-day adventure includes transfers, permits, and guided experiences.',
   })
   @IsString()
+  @IsNotEmpty()
   description: string;
 
   @ApiProperty({
@@ -166,25 +226,43 @@ export class CreatePackageDto {
     minimum: 1,
     example: 3,
   })
-  @IsNumber()
+  @IsInt()
   @Min(1)
   duration_days: number;
 
-  @ApiPropertyOptional({
-    description: 'Physical difficulty (e.g. Moderate, Challenging)',
-    maxLength: 50,
-    example: 'Moderate',
+  @ApiProperty({
+    description: 'Minimum pax supported by this package',
+    minimum: 1,
+    example: 2,
   })
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  difficulty_level?: string;
+  @IsInt()
+  @Min(1)
+  min_pax: number;
+
+  @ApiProperty({
+    description: 'Maximum pax supported by this package',
+    minimum: 1,
+    example: 6,
+  })
+  @IsInt()
+  @Min(1)
+  max_pax: number;
+
+  @ApiProperty({
+    description: 'Travel year this pricing applies to',
+    minimum: 2024,
+    example: 2026,
+  })
+  @IsInt()
+  @Min(2024)
+  travel_year: number;
 
   @ApiProperty({
     description: 'Starting price per person (decimal string)',
     example: '2500.00',
   })
   @IsString()
+  @IsNotEmpty()
   base_price: string;
 
   @ApiPropertyOptional({
@@ -235,13 +313,34 @@ export class CreatePackageDto {
   @Type(() => CreatePackageExclusionDto)
   exclusions?: CreatePackageExclusionDto[];
 
-  @ApiPropertyOptional({
+  @ApiProperty({
+    type: [CreatePackageAccommodationOptionDto],
+    description: 'Accommodation options at package level (per tier)',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreatePackageAccommodationOptionDto)
+  accommodationOptions: CreatePackageAccommodationOptionDto[];
+
+  @ApiProperty({
+    type: [CreatePackagePricingDto],
+    description: 'Tier/pax pricing rows including optional SSR rows',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreatePackagePricingDto)
+  pricing: CreatePackagePricingDto[];
+
+  @ApiProperty({
     type: [CreatePackageItineraryDayDto],
     description: 'Day-by-day itinerary',
   })
-  @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(60)
   @ValidateNested({ each: true })
   @Type(() => CreatePackageItineraryDayDto)
-  itinerary_days?: CreatePackageItineraryDayDto[];
+  itinerary: CreatePackageItineraryDayDto[];
 }
