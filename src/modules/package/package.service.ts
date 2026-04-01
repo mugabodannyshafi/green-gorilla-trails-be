@@ -8,9 +8,9 @@ import { PackageInclusion } from '../../database/entities/7_package_inclusion.en
 import { PackageExclusion } from '../../database/entities/8_package_exclusion.entity';
 import { PackageGalleryImage } from '../../database/entities/4_package_gallery_image.entity';
 import { PackageItineraryDay } from '../../database/entities/5_package_itinerary_day.entity';
-import { PackageAccommodationOption } from '../../database/entities/17_package_accommodation_option.entity';
 import { PackagePricing } from '../../database/entities/16_package_pricing.entity';
 import { PackageActivity } from '../../database/entities/18_package_activity.entity';
+import { PackageDayAccommodation } from '../../database/entities/6_package_day_accommodation.entity';
 import { Booking } from '../../database/entities/14_booking.entity';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { v2 as cloudinary } from 'cloudinary';
@@ -69,17 +69,6 @@ export class PackageService extends BaseService {
         throw new BadRequestException('min_pax cannot be greater than max_pax');
       }
 
-      const accommodationOptions = (dto.accommodationOptions ?? []).map((option) =>
-        manager.create(PackageAccommodationOption, {
-          package_id: savedPackage.id,
-          tier: option.tier,
-          name: option.name,
-        }),
-      );
-      if (accommodationOptions.length > 0) {
-        await manager.save(PackageAccommodationOption, accommodationOptions);
-      }
-
       const pricingRows = (dto.pricing ?? []).map((row) =>
         manager.create(PackagePricing, {
           package_id: savedPackage.id,
@@ -119,6 +108,23 @@ export class PackageService extends BaseService {
       }
       if (activities.length > 0) {
         await manager.save(PackageActivity, activities);
+      }
+
+      const accommodations: PackageDayAccommodation[] = [];
+      for (let i = 0; i < savedDays.length; i++) {
+        const dayDto = dto.itinerary[i];
+        for (const accommodationDto of dayDto.accommodations) {
+          accommodations.push(
+            manager.create(PackageDayAccommodation, {
+              itinerary_day_id: savedDays[i].id,
+              tier: accommodationDto.tier,
+              name: accommodationDto.name,
+            }),
+          );
+        }
+      }
+      if (accommodations.length > 0) {
+        await manager.save(PackageDayAccommodation, accommodations);
       }
 
       const inclusions = (dto.inclusions ?? []).map((inc, index) =>
@@ -164,35 +170,31 @@ export class PackageService extends BaseService {
       throw new BadRequestException('Package not found');
     }
 
-    const [inclusions, exclusions, galleryImages, itineraryDays, accommodationOptions, pricing] =
-      await Promise.all([
-        this.entityManager.find(PackageInclusion, {
-          where: { package_id: id },
-          order: { sort_order: 'ASC' },
-        }),
-        this.entityManager.find(PackageExclusion, {
-          where: { package_id: id },
-          order: { sort_order: 'ASC' },
-        }),
-        this.entityManager.find(PackageGalleryImage, {
-          where: { package_id: id },
-          order: { sort_order: 'ASC' },
-        }),
-        this.entityManager.find(PackageItineraryDay, {
-          where: { package_id: id },
-          order: { day_number: 'ASC' },
-        }),
-        this.entityManager.find(PackageAccommodationOption, {
-          where: { package_id: id },
-          order: { tier: 'ASC', name: 'ASC' },
-        }),
-        this.entityManager.find(PackagePricing, {
-          where: { package_id: id },
-          order: { tier: 'ASC', is_single_supplement: 'ASC', pax: 'ASC' },
-        }),
-      ]);
+    const [inclusions, exclusions, galleryImages, itineraryDays, pricing] = await Promise.all([
+      this.entityManager.find(PackageInclusion, {
+        where: { package_id: id },
+        order: { sort_order: 'ASC' },
+      }),
+      this.entityManager.find(PackageExclusion, {
+        where: { package_id: id },
+        order: { sort_order: 'ASC' },
+      }),
+      this.entityManager.find(PackageGalleryImage, {
+        where: { package_id: id },
+        order: { sort_order: 'ASC' },
+      }),
+      this.entityManager.find(PackageItineraryDay, {
+        where: { package_id: id },
+        order: { day_number: 'ASC' },
+      }),
+      this.entityManager.find(PackagePricing, {
+        where: { package_id: id },
+        order: { tier: 'ASC', is_single_supplement: 'ASC', pax: 'ASC' },
+      }),
+    ]);
 
     const activitiesByDay = await this.loadActivitiesByDay(itineraryDays);
+    const dayAccommodationsByDay = await this.loadDayAccommodationsByDay(itineraryDays);
 
     return this.buildPackagePayload(
       pkg,
@@ -201,7 +203,7 @@ export class PackageService extends BaseService {
       galleryImages,
       itineraryDays,
       activitiesByDay,
-      accommodationOptions,
+      dayAccommodationsByDay,
       pricing,
     );
   }
@@ -255,47 +257,37 @@ export class PackageService extends BaseService {
     if (similarPackages.length === 0) return [];
 
     const packageIds = similarPackages.map((pkg) => pkg.id);
-    const [
-      allInclusions,
-      allExclusions,
-      allGalleryImages,
-      allItineraryDays,
-      allAccommodationOptions,
-      allPricing,
-    ] = await Promise.all([
-      this.entityManager.find(PackageInclusion, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', sort_order: 'ASC' },
-      }),
-      this.entityManager.find(PackageExclusion, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', sort_order: 'ASC' },
-      }),
-      this.entityManager.find(PackageGalleryImage, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', sort_order: 'ASC' },
-      }),
-      this.entityManager.find(PackageItineraryDay, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', day_number: 'ASC' },
-      }),
-      this.entityManager.find(PackageAccommodationOption, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', tier: 'ASC', name: 'ASC' },
-      }),
-      this.entityManager.find(PackagePricing, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', tier: 'ASC', is_single_supplement: 'ASC', pax: 'ASC' },
-      }),
-    ]);
+    const [allInclusions, allExclusions, allGalleryImages, allItineraryDays, allPricing] =
+      await Promise.all([
+        this.entityManager.find(PackageInclusion, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageExclusion, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageGalleryImage, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageItineraryDay, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', day_number: 'ASC' },
+        }),
+        this.entityManager.find(PackagePricing, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', tier: 'ASC', is_single_supplement: 'ASC', pax: 'ASC' },
+        }),
+      ]);
 
     const activitiesByDay = await this.loadActivitiesByDay(allItineraryDays);
+    const dayAccommodationsByDay = await this.loadDayAccommodationsByDay(allItineraryDays);
 
     const inclusionsByPackage = new Map<number, PackageInclusion[]>();
     const exclusionsByPackage = new Map<number, PackageExclusion[]>();
     const galleryByPackage = new Map<number, PackageGalleryImage[]>();
     const itineraryByPackage = new Map<number, PackageItineraryDay[]>();
-    const accommodationsByPackage = new Map<number, PackageAccommodationOption[]>();
     const pricingByPackage = new Map<number, PackagePricing[]>();
 
     for (const inclusion of allInclusions) {
@@ -322,12 +314,6 @@ export class PackageService extends BaseService {
       itineraryByPackage.set(day.package_id, existing);
     }
 
-    for (const option of allAccommodationOptions) {
-      const existing = accommodationsByPackage.get(option.package_id) ?? [];
-      existing.push(option);
-      accommodationsByPackage.set(option.package_id, existing);
-    }
-
     for (const row of allPricing) {
       const existing = pricingByPackage.get(row.package_id) ?? [];
       existing.push(row);
@@ -342,7 +328,7 @@ export class PackageService extends BaseService {
         galleryByPackage.get(pkg.id) ?? [],
         itineraryByPackage.get(pkg.id) ?? [],
         activitiesByDay,
-        accommodationsByPackage.get(pkg.id) ?? [],
+        dayAccommodationsByDay,
         pricingByPackage.get(pkg.id) ?? [],
       ),
     );
@@ -410,47 +396,37 @@ export class PackageService extends BaseService {
 
     const packageIds = packages.map((pkg) => pkg.id);
 
-    const [
-      allInclusions,
-      allExclusions,
-      allGalleryImages,
-      allItineraryDays,
-      allAccommodationOptions,
-      allPricing,
-    ] = await Promise.all([
-      this.entityManager.find(PackageInclusion, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', sort_order: 'ASC' },
-      }),
-      this.entityManager.find(PackageExclusion, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', sort_order: 'ASC' },
-      }),
-      this.entityManager.find(PackageGalleryImage, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', sort_order: 'ASC' },
-      }),
-      this.entityManager.find(PackageItineraryDay, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', day_number: 'ASC' },
-      }),
-      this.entityManager.find(PackageAccommodationOption, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', tier: 'ASC', name: 'ASC' },
-      }),
-      this.entityManager.find(PackagePricing, {
-        where: { package_id: In(packageIds) },
-        order: { package_id: 'ASC', tier: 'ASC', is_single_supplement: 'ASC', pax: 'ASC' },
-      }),
-    ]);
+    const [allInclusions, allExclusions, allGalleryImages, allItineraryDays, allPricing] =
+      await Promise.all([
+        this.entityManager.find(PackageInclusion, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageExclusion, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageGalleryImage, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', sort_order: 'ASC' },
+        }),
+        this.entityManager.find(PackageItineraryDay, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', day_number: 'ASC' },
+        }),
+        this.entityManager.find(PackagePricing, {
+          where: { package_id: In(packageIds) },
+          order: { package_id: 'ASC', tier: 'ASC', is_single_supplement: 'ASC', pax: 'ASC' },
+        }),
+      ]);
 
     const activitiesByDay = await this.loadActivitiesByDay(allItineraryDays);
+    const dayAccommodationsByDay = await this.loadDayAccommodationsByDay(allItineraryDays);
 
     const inclusionsByPackage = new Map<number, PackageInclusion[]>();
     const exclusionsByPackage = new Map<number, PackageExclusion[]>();
     const galleryByPackage = new Map<number, PackageGalleryImage[]>();
     const itineraryByPackage = new Map<number, PackageItineraryDay[]>();
-    const accommodationsByPackage = new Map<number, PackageAccommodationOption[]>();
     const pricingByPackage = new Map<number, PackagePricing[]>();
 
     for (const inclusion of allInclusions) {
@@ -477,12 +453,6 @@ export class PackageService extends BaseService {
       itineraryByPackage.set(day.package_id, existing);
     }
 
-    for (const option of allAccommodationOptions) {
-      const existing = accommodationsByPackage.get(option.package_id) ?? [];
-      existing.push(option);
-      accommodationsByPackage.set(option.package_id, existing);
-    }
-
     for (const row of allPricing) {
       const existing = pricingByPackage.get(row.package_id) ?? [];
       existing.push(row);
@@ -497,7 +467,7 @@ export class PackageService extends BaseService {
         galleryByPackage.get(pkg.id) ?? [],
         itineraryByPackage.get(pkg.id) ?? [],
         activitiesByDay,
-        accommodationsByPackage.get(pkg.id) ?? [],
+        dayAccommodationsByDay,
         pricingByPackage.get(pkg.id) ?? [],
       ),
     );
@@ -652,6 +622,29 @@ export class PackageService extends BaseService {
     return activitiesByDay;
   }
 
+  private async loadDayAccommodationsByDay(
+    itineraryDays: PackageItineraryDay[],
+  ): Promise<Map<number, PackageDayAccommodation[]>> {
+    const dayIds = itineraryDays.map((day) => day.id);
+    const accommodationsByDay = new Map<number, PackageDayAccommodation[]>();
+    if (dayIds.length === 0) {
+      return accommodationsByDay;
+    }
+
+    const accommodations = await this.entityManager.find(PackageDayAccommodation, {
+      where: { itinerary_day_id: In(dayIds) },
+      order: { itinerary_day_id: 'ASC', tier: 'ASC', name: 'ASC' },
+    });
+
+    for (const accommodation of accommodations) {
+      const existing = accommodationsByDay.get(accommodation.itinerary_day_id) ?? [];
+      existing.push(accommodation);
+      accommodationsByDay.set(accommodation.itinerary_day_id, existing);
+    }
+
+    return accommodationsByDay;
+  }
+
   private buildPackagePayload(
     pkg: Package,
     inclusions: PackageInclusion[],
@@ -659,7 +652,7 @@ export class PackageService extends BaseService {
     galleryImages: PackageGalleryImage[],
     itineraryDays: PackageItineraryDay[],
     activitiesByDay: Map<number, PackageActivity[]>,
-    accommodationOptions: PackageAccommodationOption[],
+    dayAccommodationsByDay: Map<number, PackageDayAccommodation[]>,
     pricing: PackagePricing[],
   ): any {
     const destination = pkg.destination
@@ -715,13 +708,6 @@ export class PackageService extends BaseService {
         created_at: this.formatDate(img.created_at),
         updated_at: this.formatDate(img.updated_at),
       })),
-      accommodation_options: accommodationOptions.map((option) => ({
-        id: Number(option.id),
-        tier: option.tier,
-        name: option.name,
-        created_at: this.formatDate(option.created_at),
-        updated_at: this.formatDate(option.updated_at),
-      })),
       pricing: pricing.map((row) => ({
         id: Number(row.id),
         tier: row.tier,
@@ -733,6 +719,7 @@ export class PackageService extends BaseService {
       })),
       itinerary_days: itineraryDays.map((day) => {
         const activities = activitiesByDay.get(day.id) ?? [];
+        const accommodations = dayAccommodationsByDay.get(day.id) ?? [];
         return {
           id: Number(day.id),
           day_number: day.day_number,
@@ -744,6 +731,13 @@ export class PackageService extends BaseService {
             name: activity.name,
             created_at: this.formatDate(activity.created_at),
             updated_at: this.formatDate(activity.updated_at),
+          })),
+          accommodations: accommodations.map((accommodation) => ({
+            id: Number(accommodation.id),
+            tier: accommodation.tier,
+            name: accommodation.name,
+            created_at: this.formatDate(accommodation.created_at),
+            updated_at: this.formatDate(accommodation.updated_at),
           })),
           created_at: this.formatDate(day.created_at),
           updated_at: this.formatDate(day.updated_at),

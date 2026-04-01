@@ -5,7 +5,6 @@ import { PackageInclusion } from './7_package_inclusion.entity';
 import { PackageExclusion } from './8_package_exclusion.entity';
 import { PackageItineraryDay } from './5_package_itinerary_day.entity';
 import { PackagePricing } from './16_package_pricing.entity';
-import { PackageAccommodationOption } from './17_package_accommodation_option.entity';
 
 export enum PackageStatus {
   DRAFT = 'DRAFT',
@@ -42,9 +41,6 @@ export class Package extends EntityModel {
 
   @OneToMany(() => PackagePricing, (pricing) => pricing.package)
   pricing: PackagePricing[];
-
-  @OneToMany(() => PackageAccommodationOption, (option) => option.package)
-  accommodationOptions: PackageAccommodationOption[];
 
   @Column({
     type: 'varchar',

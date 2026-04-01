@@ -2,15 +2,14 @@ import { EntityManager } from 'typeorm';
 import { EntitySeeder } from './seeder';
 import { Destination } from '../entities/3_destination.entity';
 import { Package, PackageStatus } from '../entities/2_package.entity';
-import {
-  PackageAccommodationOption,
-  PackageAccommodationTier,
-} from '../entities/17_package_accommodation_option.entity';
+import { PackageAccommodationTier } from '../entities/17_package_accommodation_option.entity';
 import { PackagePricing } from '../entities/16_package_pricing.entity';
 import { PackageItineraryDay } from '../entities/5_package_itinerary_day.entity';
 import { MealType, PackageActivity } from '../entities/18_package_activity.entity';
 import { PackageInclusion } from '../entities/7_package_inclusion.entity';
 import { PackageExclusion } from '../entities/8_package_exclusion.entity';
+import { PackageGalleryImage } from '../entities/4_package_gallery_image.entity';
+import { PackageDayAccommodation } from '../entities/6_package_day_accommodation.entity';
 
 type SeedPricingRow = {
   tier: PackageAccommodationTier;
@@ -25,6 +24,7 @@ type SeedItineraryDay = {
   description: string;
   meals: MealType[];
   activities: string[];
+  accommodations: Array<{ tier: PackageAccommodationTier; name: string }>;
 };
 
 type SeedPackage = {
@@ -42,9 +42,9 @@ type SeedPackage = {
   currency: string;
   featured_image: string;
   status: PackageStatus;
-  accommodationOptions: Array<{ tier: PackageAccommodationTier; name: string }>;
   pricing: SeedPricingRow[];
   itinerary: SeedItineraryDay[];
+  galleryImages: Array<{ url: string; alt?: string }>;
   inclusions: string[];
   exclusions: string[];
 };
@@ -68,11 +68,6 @@ const PACKAGES: SeedPackage[] = [
     featured_image:
       'https://images.unsplash.com/photo-1549366021-9f761d450615?auto=format&fit=crop&w=1400&q=80',
     status: PackageStatus.PUBLISHED,
-    accommodationOptions: [
-      { tier: PackageAccommodationTier.STANDARD, name: 'Akagera Game Lodge' },
-      { tier: PackageAccommodationTier.MIDRANGE, name: 'Ruzizi Tented Lodge' },
-      { tier: PackageAccommodationTier.LUXURY, name: 'Magashi Camp' },
-    ],
     pricing: [
       ...buildTierPricing(PackageAccommodationTier.STANDARD, [
         '480.00',
@@ -112,6 +107,21 @@ const PACKAGES: SeedPackage[] = [
           'Picnic lunch inside the park',
           'Afternoon game viewing and return to Kigali',
         ],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Ruzizi Tented Lodge' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'Magashi Camp' },
+        ],
+      },
+    ],
+    galleryImages: [
+      {
+        url: 'https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Akagera wildlife landscape',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1523805009345-7448845a9e53?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Safari jeep in Akagera',
       },
     ],
     inclusions: [
@@ -145,11 +155,6 @@ const PACKAGES: SeedPackage[] = [
     featured_image:
       'https://images.unsplash.com/photo-1590041177983-df0f3f91f5f5?auto=format&fit=crop&w=1400&q=80',
     status: PackageStatus.PUBLISHED,
-    accommodationOptions: [
-      { tier: PackageAccommodationTier.STANDARD, name: 'Le Bambou Gorilla Lodge' },
-      { tier: PackageAccommodationTier.MIDRANGE, name: 'Five Volcanoes Boutique Hotel' },
-      { tier: PackageAccommodationTier.LUXURY, name: 'Bisate Lodge' },
-    ],
     pricing: [
       ...buildTierPricing(PackageAccommodationTier.STANDARD, [
         '1353.00',
@@ -189,6 +194,21 @@ const PACKAGES: SeedPackage[] = [
           'Guided mountain gorilla trek',
           'Transfer back to Kigali',
         ],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Le Bambou Gorilla Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Five Volcanoes Boutique Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'Bisate Lodge' },
+        ],
+      },
+    ],
+    galleryImages: [
+      {
+        url: 'https://images.unsplash.com/photo-1523805009345-7448845a9e53?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Volcanoes National Park road',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1549366021-9f761d450615?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Forest gorilla habitat',
       },
     ],
     inclusions: [
@@ -218,11 +238,6 @@ const PACKAGES: SeedPackage[] = [
     featured_image:
       'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1400&q=80',
     status: PackageStatus.PUBLISHED,
-    accommodationOptions: [
-      { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
-      { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
-      { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
-    ],
     pricing: [
       ...buildTierPricing(PackageAccommodationTier.STANDARD, [
         '6890.00',
@@ -261,6 +276,11 @@ const PACKAGES: SeedPackage[] = [
           'Private transfer to hotel',
           'Evening safari briefing',
         ],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 2,
@@ -273,6 +293,11 @@ const PACKAGES: SeedPackage[] = [
           'Artisan market stop',
           'Scenic transfer/flight to Volcanoes',
         ],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 3,
@@ -280,6 +305,11 @@ const PACKAGES: SeedPackage[] = [
         description: 'Early park briefing followed by gorilla trek and leisure at the lodge.',
         meals: [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER],
         activities: ['Park briefing', 'Gorilla trekking experience', 'Lodge sundowner'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 4,
@@ -288,6 +318,11 @@ const PACKAGES: SeedPackage[] = [
           'Track golden monkeys in the morning and visit local conservation initiatives.',
         meals: [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER],
         activities: ['Golden monkey trekking', 'Community cultural visit', 'Optional nature walk'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 5,
@@ -295,6 +330,11 @@ const PACKAGES: SeedPackage[] = [
         description: 'Scenic transfer to Nyungwe with tea estate stopovers.',
         meals: [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER],
         activities: ['Scenic transfer to Nyungwe', 'Tea plantation visit', 'Lodge check-in'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 6,
@@ -302,6 +342,11 @@ const PACKAGES: SeedPackage[] = [
         description: 'Primate trekking in Nyungwe followed by the famous canopy walk.',
         meals: [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER],
         activities: ['Chimpanzee trekking', 'Nyungwe canopy walk', 'Forest interpretation walk'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 7,
@@ -309,6 +354,11 @@ const PACKAGES: SeedPackage[] = [
         description: 'Move to Akagera for savannah safari segment.',
         meals: [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER],
         activities: ['Scenic transfer/flight to Akagera', 'Sunset game drive'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 8,
@@ -316,6 +366,11 @@ const PACKAGES: SeedPackage[] = [
         description: 'Full-day wildlife exploration by vehicle and boat.',
         meals: [MealType.BREAKFAST, MealType.LUNCH, MealType.DINNER],
         activities: ['Morning game drive', 'Lake Ihema boat safari', 'Afternoon game drive'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
       },
       {
         day_number: 9,
@@ -323,6 +378,25 @@ const PACKAGES: SeedPackage[] = [
         description: 'Final transfer to Kigali for outbound international departure.',
         meals: [MealType.BREAKFAST, MealType.LUNCH],
         activities: ['Road transfer to Kigali', 'Airport drop-off'],
+        accommodations: [
+          { tier: PackageAccommodationTier.STANDARD, name: 'Mantis Akagera Game Lodge' },
+          { tier: PackageAccommodationTier.MIDRANGE, name: 'Nyungwe Top View Hill Hotel' },
+          { tier: PackageAccommodationTier.LUXURY, name: 'One&Only Gorilla’s Nest' },
+        ],
+      },
+    ],
+    galleryImages: [
+      {
+        url: 'https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Luxury Rwanda safari lodge',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Akagera savannah sunset',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1508672019048-805c876b67e2?auto=format&fit=crop&w=1400&q=80',
+        alt: 'Aerial safari transfer views',
       },
     ],
     inclusions: [
@@ -392,20 +466,11 @@ export class PackageSeeder implements EntitySeeder {
     const savedPackage = await tx.save(Package, pkg);
     const packageId = savedPackage.id;
 
-    await tx.delete(PackageAccommodationOption, { package_id: packageId });
     await tx.delete(PackagePricing, { package_id: packageId });
     await tx.delete(PackageInclusion, { package_id: packageId });
     await tx.delete(PackageExclusion, { package_id: packageId });
+    await tx.delete(PackageGalleryImage, { package_id: packageId });
     await tx.delete(PackageItineraryDay, { package_id: packageId });
-
-    const accommodationOptions = row.accommodationOptions.map((option) =>
-      tx.create(PackageAccommodationOption, {
-        package_id: packageId,
-        tier: option.tier,
-        name: option.name,
-      }),
-    );
-    await tx.save(PackageAccommodationOption, accommodationOptions);
 
     const pricing = row.pricing.map((priceRow) =>
       tx.create(PackagePricing, {
@@ -418,6 +483,16 @@ export class PackageSeeder implements EntitySeeder {
     );
     await tx.save(PackagePricing, pricing);
 
+    const galleryImages = row.galleryImages.map((image, index) =>
+      tx.create(PackageGalleryImage, {
+        package_id: packageId,
+        url: image.url,
+        alt: image.alt ?? null,
+        sort_order: index,
+      }),
+    );
+    await tx.save(PackageGalleryImage, galleryImages);
+
     const itineraryDays = row.itinerary.map((day) =>
       tx.create(PackageItineraryDay, {
         package_id: packageId,
@@ -428,6 +503,20 @@ export class PackageSeeder implements EntitySeeder {
       }),
     );
     const savedDays = await tx.save(PackageItineraryDay, itineraryDays);
+
+    const dayAccommodations: PackageDayAccommodation[] = [];
+    for (let i = 0; i < savedDays.length; i++) {
+      for (const option of row.itinerary[i].accommodations) {
+        dayAccommodations.push(
+          tx.create(PackageDayAccommodation, {
+            itinerary_day_id: savedDays[i].id,
+            tier: option.tier,
+            name: option.name,
+          }),
+        );
+      }
+    }
+    await tx.save(PackageDayAccommodation, dayAccommodations);
 
     const activities: PackageActivity[] = [];
     for (let i = 0; i < savedDays.length; i++) {

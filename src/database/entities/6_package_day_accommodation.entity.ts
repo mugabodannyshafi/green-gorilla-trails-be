@@ -1,12 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Index } from 'typeorm';
 import { EntityModel } from './entityModel';
 import { PackageItineraryDay } from './5_package_itinerary_day.entity';
-
-export enum AccommodationTier {
-  MIDRANGE = 'MIDRANGE',
-  LUXURY = 'LUXURY',
-  HIGH_END = 'HIGH_END',
-}
+import { PackageAccommodationTier } from './17_package_accommodation_option.entity';
 
 @Entity('PackageDayAccommodation')
 @Index(['itinerary_day_id'])
@@ -30,10 +25,10 @@ export class PackageDayAccommodation extends EntityModel {
 
   @Column({
     type: 'enum',
-    enum: AccommodationTier,
+    enum: PackageAccommodationTier,
     nullable: false,
   })
-  tier: AccommodationTier;
+  tier: PackageAccommodationTier;
 
   @Column({
     type: 'varchar',

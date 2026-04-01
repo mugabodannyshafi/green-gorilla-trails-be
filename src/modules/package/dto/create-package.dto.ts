@@ -58,26 +58,6 @@ export class CreatePackageExclusionDto {
   sort_order?: number;
 }
 
-export class CreatePackageAccommodationOptionDto {
-  @ApiProperty({
-    enum: PackageAccommodationTier,
-    description: 'Accommodation tier (STANDARD | MIDRANGE | LUXURY)',
-    example: PackageAccommodationTier.MIDRANGE,
-  })
-  @IsEnum(PackageAccommodationTier)
-  tier: PackageAccommodationTier;
-
-  @ApiProperty({
-    description: 'Hotel/lodge name for the selected tier',
-    maxLength: 255,
-    example: 'Five Volcanoes Boutique Hotel',
-  })
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  name: string;
-}
-
 export class CreatePackagePricingDto {
   @ApiProperty({
     enum: PackageAccommodationTier,
@@ -120,6 +100,26 @@ export class CreatePackageActivityDto {
     description: 'Activity name',
     maxLength: 255,
     example: 'Kigali city tour',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name: string;
+}
+
+export class CreatePackageDayAccommodationDto {
+  @ApiProperty({
+    enum: PackageAccommodationTier,
+    description: 'Accommodation tier (STANDARD | MIDRANGE | LUXURY)',
+    example: PackageAccommodationTier.MIDRANGE,
+  })
+  @IsEnum(PackageAccommodationTier)
+  tier: PackageAccommodationTier;
+
+  @ApiProperty({
+    description: 'Hotel/lodge name for this day and tier',
+    maxLength: 255,
+    example: 'Five Volcanoes Boutique Hotel',
   })
   @IsString()
   @IsNotEmpty()
@@ -176,6 +176,16 @@ export class CreatePackageItineraryDayDto {
   @ValidateNested({ each: true })
   @Type(() => CreatePackageActivityDto)
   activities: CreatePackageActivityDto[];
+
+  @ApiProperty({
+    type: [CreatePackageDayAccommodationDto],
+    description: 'Accommodation options for this itinerary day',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => CreatePackageDayAccommodationDto)
+  accommodations: CreatePackageDayAccommodationDto[];
 }
 
 export class CreatePackageDto {
@@ -312,16 +322,6 @@ export class CreatePackageDto {
   @ValidateNested({ each: true })
   @Type(() => CreatePackageExclusionDto)
   exclusions?: CreatePackageExclusionDto[];
-
-  @ApiProperty({
-    type: [CreatePackageAccommodationOptionDto],
-    description: 'Accommodation options at package level (per tier)',
-  })
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => CreatePackageAccommodationOptionDto)
-  accommodationOptions: CreatePackageAccommodationOptionDto[];
 
   @ApiProperty({
     type: [CreatePackagePricingDto],
