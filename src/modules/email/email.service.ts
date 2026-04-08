@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { BadRequestException } from '@rwanda360/rwanda360-service-sdk';
+import { Booking } from '../../database/entities/14_booking.entity';
 
 @Injectable()
 export class EmailService {
@@ -65,6 +66,28 @@ export class EmailService {
     }
   }
 
+  async sendBookingNotificationEmail(booking: Booking): Promise<void> {
+    const contactToEmail = 'mugabodannyshafi@gmail.com';
+    try {
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: contactToEmail,
+        subject: `New Booking Request - ${booking.customer_name}`,
+        html: this.getBookingEmailTemplate(booking),
+      });
+
+      if (error) {
+        console.error('Resend error:', error);
+        throw new BadRequestException('Failed to send booking notification email');
+      }
+
+      console.log('Booking notification email sent successfully:', data);
+    } catch (error) {
+      console.error('Error sending booking notification email:', error);
+      throw new BadRequestException('Failed to send booking notification email: ' + error.message);
+    }
+  }
+
   private getContactEmailTemplate(
     name: string,
     email: string,
@@ -88,6 +111,41 @@ export class EmailService {
     <p style="margin:0 0 4px 0;">Subject: ${subject}</p>
     <p style="margin:0 0 4px 0;">Message:</p>
     <p style="margin:0 0 20px 0;">${message}</p>
+
+    <p style="margin:24px 0 0 0; font-size:12px; color:#9ca3af;">© ${new Date().getFullYear()} Nextline · Automated message</p>
+  </body>
+</html>`;
+  }
+
+  private getBookingEmailTemplate(booking: Booking): string {
+    const preferredDate =
+      booking.travel_date && Number.isInteger(booking.travel_date)
+        ? `${Math.floor(booking.travel_date / 10000)}-${String(
+            Math.floor((booking.travel_date % 10000) / 100),
+          ).padStart(2, '0')}-${String(booking.travel_date % 100).padStart(2, '0')}`
+        : 'N/A';
+
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Booking - Nextline</title>
+  </head>
+  <body style="margin:0; padding:24px; font-family: Arial, sans-serif; font-size:15px; color:#0a0c10; line-height:1.5; background-color:#fff;">
+    <p style="margin:0 0 8px 0; font-weight:600;">New Booking Request – Nextline</p>
+    <p style="margin:0 0 20px 0;">A new booking request has been submitted from the website.</p>
+
+    <p style="margin:0 0 8px 0; font-size:12px; font-weight:600; color:#6b7280; text-transform:uppercase;">Booking Details</p>
+    <p style="margin:0 0 4px 0;">Customer: ${booking.customer_name}</p>
+    <p style="margin:0 0 4px 0;">Email: <a href="mailto:${booking.email}" style="color:#4D84F0;">${booking.email}</a></p>
+    <p style="margin:0 0 4px 0;">Package ID: ${booking.package_id}</p>
+    <p style="margin:0 0 4px 0;">Preferred date: ${preferredDate}</p>
+    <p style="margin:0 0 4px 0;">Number of days: ${booking.number_of_days}</p>
+    <p style="margin:0 0 4px 0;">Number of guests: ${booking.number_of_guests}</p>
+    <p style="margin:0 0 4px 0;">Status: ${booking.status}</p>
+    <p style="margin:0 0 4px 0;">Message:</p>
+    <p style="margin:0 0 20px 0;">${booking.message || '-'}</p>
 
     <p style="margin:24px 0 0 0; font-size:12px; color:#9ca3af;">© ${new Date().getFullYear()} Nextline · Automated message</p>
   </body>
