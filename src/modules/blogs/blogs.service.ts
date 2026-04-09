@@ -50,7 +50,6 @@ export class BlogsService extends BaseService {
     const byId = new Map(posts.map((p) => [Number(p.id), p]));
     const ordered = ids.map((id) => byId.get(id)).filter((p): p is BlogPost => p != null);
 
-    console.log('---->', ordered);
     const items = ordered.map((p) => this.serializePostList(p));
     return this.paginate(items, count, pagination);
   }
