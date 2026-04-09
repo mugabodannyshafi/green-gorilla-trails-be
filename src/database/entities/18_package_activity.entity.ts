@@ -1,12 +1,16 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Index } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { EntityModel } from './entityModel';
 import { PackageItineraryDay } from './5_package_itinerary_day.entity';
-import { PackageAccommodationTier } from './17_package_accommodation_option.entity';
 
-@Entity('PackageDayAccommodation')
+export enum MealType {
+  BREAKFAST = 'BREAKFAST',
+  LUNCH = 'LUNCH',
+  DINNER = 'DINNER',
+}
+
+@Entity('PackageActivity')
 @Index(['itinerary_day_id'])
-@Index(['itinerary_day_id', 'tier'])
-export class PackageDayAccommodation extends EntityModel {
+export class PackageActivity extends EntityModel {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
@@ -22,13 +26,6 @@ export class PackageDayAccommodation extends EntityModel {
   })
   @JoinColumn({ name: 'itinerary_day_id' })
   itineraryDay: PackageItineraryDay;
-
-  @Column({
-    type: 'enum',
-    enum: PackageAccommodationTier,
-    nullable: false,
-  })
-  tier: PackageAccommodationTier;
 
   @Column({
     type: 'varchar',

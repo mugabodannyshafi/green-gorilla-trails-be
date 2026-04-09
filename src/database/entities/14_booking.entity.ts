@@ -1,15 +1,6 @@
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { EntityModel } from './entityModel';
 import { Package } from './2_package.entity';
-import { BookingGuest } from './15_booking_guest.entity';
 
 export enum BookingStatus {
   PENDING = 'PENDING',
@@ -25,9 +16,6 @@ export enum BookingStatus {
 export class Booking extends EntityModel {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
-
-  @OneToMany(() => BookingGuest, (guest) => guest.booking)
-  guests: BookingGuest[];
 
   @Column({
     type: 'bigint',
@@ -49,16 +37,42 @@ export class Booking extends EntityModel {
   travel_date: number;
 
   @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
+  customer_name: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
+  email: string;
+
+  @Column({
     type: 'int',
     nullable: false,
   })
   number_of_guests: number;
 
   @Column({
+    type: 'int',
+    nullable: false,
+  })
+  number_of_days: number;
+
+  @Column({
     type: 'text',
     nullable: true,
   })
   special_requests?: string;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  message?: string;
 
   @Column({
     type: 'enum',

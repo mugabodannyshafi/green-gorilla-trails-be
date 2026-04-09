@@ -1,7 +1,8 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { EntityModel } from './entityModel';
 import { Package } from './2_package.entity';
-import { PackageDayAccommodation } from './6_package_day_accommodation.entity';
+import { MealType } from './18_package_activity.entity';
+import { PackageActivity } from './18_package_activity.entity';
 
 @Entity('PackageItineraryDay')
 export class PackageItineraryDay extends EntityModel {
@@ -21,8 +22,8 @@ export class PackageItineraryDay extends EntityModel {
   @JoinColumn({ name: 'package_id' })
   package: Package;
 
-  @OneToMany(() => PackageDayAccommodation, (accommodation) => accommodation.itineraryDay)
-  accommodations: PackageDayAccommodation[];
+  @OneToMany(() => PackageActivity, (activity) => activity.itineraryDay)
+  activities: PackageActivity[];
 
   @Column({
     type: 'int',
@@ -44,8 +45,8 @@ export class PackageItineraryDay extends EntityModel {
   description: string;
 
   @Column({
-    type: 'text',
+    type: 'simple-array',
     nullable: true,
   })
-  meals_text?: string;
+  meals?: MealType[];
 }

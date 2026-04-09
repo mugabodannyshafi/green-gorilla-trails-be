@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -47,7 +48,7 @@ export class PackageController extends BaseController {
   @ApiResponse({ status: 201, description: 'Package created successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request - validation or destination not found' })
   async create(@Body() dto: CreatePackageDto) {
-    const pkg = await this.packageService.create(dto);
+    const pkg = await this.packageService.createPackage(dto);
     return this.successMessageResponse('Package created successfully', { id: Number(pkg.id) });
   }
 
@@ -118,17 +119,41 @@ export class PackageController extends BaseController {
   @ApiQuery({
     name: 'destination',
     required: false,
-    type: Number,
-    description: 'Filter by destination ID',
+    type: String,
+    description: 'Filter by destination slug',
   })
   @ApiOperation({ summary: 'Get all packages' })
   @ApiResponse({ status: 200, description: 'Packages retrieved successfully' })
   async getAllPackages(
     @GetPaginationData() pagination: PaginationData,
     @Query('status') status?: PackageStatus,
-    @Query('destination') destination?: number,
+    @Query('destination') destination?: string,
   ) {
     return await this.packageService.getAllPackages(pagination, status, destination);
+  }
+
+  @Get('statistics')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get package counts by status' })
+  @ApiResponse({ status: 200, description: 'Package statistics retrieved successfully' })
+  async getPackageStatistics() {
+    return await this.packageService.getPackageStatistics();
+  }
+
+  @Get('count-by-destination')
+  @HttpCode(HttpStatus.OK)
+  @ApiQuery({
+    name: 'destinationslug',
+    required: true,
+    type: String,
+    description: 'Destination slug',
+    example: 'volcanoes-national-park',
+  })
+  @ApiOperation({ summary: 'Count packages for a destination by slug' })
+  @ApiResponse({ status: 200, description: 'Package count retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request - missing or empty destinationslug' })
+  async countPackagesByDestinationSlug(@Query('destinationslug') destinationslug: string) {
+    return await this.packageService.countPackagesByDestinationSlug(destinationslug);
   }
 
   @Get(':id/similar')
@@ -147,7 +172,21 @@ export class PackageController extends BaseController {
   @ApiParam({ name: 'id', type: Number, description: 'Package id' })
   @ApiResponse({ status: 200, description: 'Package retrieved successfully' })
   @ApiResponse({ status: 400, description: 'Bad Request - package not found' })
-  async getBigPackage(@Param('id', ParseIntPipe) id: number) {
+  async getPackageById(@Param('id', ParseIntPipe) id: number) {
     return await this.packageService.getPackageById(id);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a package' })
+  @ApiParam({ name: 'id', type: Number, description: 'Package id' })
+  @ApiResponse({ status: 200, description: 'Package deleted successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request - package not found' })
+  @ApiResponse({ status: 409, description: 'Conflict - package has existing bookings' })
+  async deletePackage(@Param('id', ParseIntPipe) id: number) {
+    await this.packageService.delete(id);
+    return this.successMessageResponse('Package deleted successfully', { id });
   }
 }
