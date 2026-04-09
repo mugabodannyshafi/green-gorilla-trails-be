@@ -1,6 +1,7 @@
 # green-gorilla-trails-be
 
-A NestJS application
+A professional, dynamic, mobile-first content management system for tourism operations specializing in Rwanda gorilla trekking and East Africa safaris.
+
 
 ## Installation
 

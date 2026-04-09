@@ -1,0 +1,94 @@
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { EntityModel } from './entityModel';
+import { PackageInclusion } from './7_package_inclusion.entity';
+import { PackageExclusion } from './8_package_exclusion.entity';
+
+export enum PackageStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+@Entity('Package')
+export class Package extends EntityModel {
+  @PrimaryGeneratedColumn({ type: 'bigint' })
+  id: number;
+
+  @OneToMany(() => PackageInclusion, (inclusion) => inclusion.package)
+  inclusions: PackageInclusion[];
+
+  @OneToMany(() => PackageExclusion, (exclusion) => exclusion.package)
+  exclusions: PackageExclusion[];
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
+  title: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+    unique: true,
+  })
+  slug: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  short_description?: string;
+
+  @Column({
+    type: 'text',
+    nullable: false,
+  })
+  description: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  featured_image?: string;
+
+  @Column({
+    type: 'int',
+    nullable: false,
+  })
+  duration_days: number;
+
+  @Column({
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  difficulty_level?: string;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+  })
+  base_price: string;
+
+  @Column({
+    type: 'varchar',
+    length: 3,
+    nullable: false,
+    default: 'USD',
+  })
+  currency: string;
+
+  @Column({
+    type: 'enum',
+    enum: PackageStatus,
+    default: PackageStatus.DRAFT,
+    nullable: false,
+  })
+  status: PackageStatus;
+}
