@@ -23,4 +23,3 @@ export class DashboardTrendsDto {
   @ApiProperty({ type: [RevenueByPackageDto] })
   revenueByPackage: RevenueByPackageDto[];
 }
-

@@ -84,4 +84,3 @@ export class BookingsService extends BaseService {
     return year * 10000 + month * 100 + day;
   }
 }
-

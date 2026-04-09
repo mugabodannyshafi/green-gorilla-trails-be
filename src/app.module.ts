@@ -31,11 +31,6 @@ import { BlogsModule } from './modules/blogs/blogs.module';
     BlogsModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    AdminSeeder,
-    DestinationSeeder,
-    PackageSeeder,
-  ],
+  providers: [AppService, AdminSeeder, DestinationSeeder, PackageSeeder],
 })
 export class AppModule {}

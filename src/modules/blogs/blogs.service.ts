@@ -176,7 +176,8 @@ export class BlogsService extends BaseService {
       excerpt: post.excerpt ?? null,
       featured_image: post.featured_image ?? null,
       is_featured: post.is_featured,
-      published_at: DateTime.fromSeconds(post.published_at ?? 0).toFormat('yyyy-LL-dd, HH:mm') ?? null,
+      published_at:
+        DateTime.fromSeconds(post.published_at ?? 0).toFormat('yyyy-LL-dd, HH:mm') ?? null,
       view_count: post.view_count,
       content: post.content,
       author: post.author ? this.serializeAuthor(post.author) : null,

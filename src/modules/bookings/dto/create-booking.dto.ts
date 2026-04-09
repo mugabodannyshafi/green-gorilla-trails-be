@@ -51,4 +51,3 @@ export class CreateBookingDto {
   @IsString()
   message?: string;
 }
-

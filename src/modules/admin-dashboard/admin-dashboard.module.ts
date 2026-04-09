@@ -12,4 +12,3 @@ import { AdminDashboardController } from './admin-dashboard.controller';
   providers: [AdminDashboardService],
 })
 export class AdminDashboardModule {}
-
