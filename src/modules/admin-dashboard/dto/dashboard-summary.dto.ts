@@ -10,4 +10,3 @@ export class DashboardSummaryDto {
   @ApiProperty({ example: 14, description: 'Number of currently active/published packages' })
   activePackages: number;
 }
-

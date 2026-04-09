@@ -29,4 +29,3 @@ export class AdminDashboardController extends BaseController {
     return this.adminDashboardService.getTrends();
   }
 }
-

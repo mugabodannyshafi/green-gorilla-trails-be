@@ -20,7 +20,7 @@ export class ContactDto {
 
   @ApiProperty({
     description: 'Contact form subject',
-    example: 'Question about properties',
+    example: 'Question about services',
   })
   @IsString()
   @IsNotEmpty({ message: 'Subject is required' })
