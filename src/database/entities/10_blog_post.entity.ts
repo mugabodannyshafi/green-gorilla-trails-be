@@ -1,16 +1,6 @@
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { EntityModel } from './entityModel';
 import { User } from './1_user.entity';
-import { BlogCategory } from './9_blog_category.entity';
-import { BlogPostTag } from './12_blog_post_tag.entity';
 
 export enum BlogPostStatus {
   DRAFT = 'DRAFT',
@@ -21,13 +11,9 @@ export enum BlogPostStatus {
 @Index(['status'])
 @Index(['published_at'])
 @Index(['author_id'])
-@Index(['category_id'])
 export class BlogPost extends EntityModel {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
-
-  @OneToMany(() => BlogPostTag, (postTag) => postTag.post)
-  post_tags: BlogPostTag[];
 
   @Column({
     type: 'varchar',
@@ -102,16 +88,4 @@ export class BlogPost extends EntityModel {
   })
   @JoinColumn({ name: 'author_id' })
   author: User;
-
-  @Column({
-    type: 'bigint',
-    nullable: false,
-  })
-  category_id: number;
-
-  @ManyToOne(() => BlogCategory, {
-    nullable: false,
-  })
-  @JoinColumn({ name: 'category_id' })
-  category: BlogCategory;
 }
