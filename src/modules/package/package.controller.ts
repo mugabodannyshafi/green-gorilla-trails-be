@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   UploadedFiles,
@@ -50,6 +51,20 @@ export class PackageController extends BaseController {
   async create(@Body() dto: CreatePackageDto) {
     const pkg = await this.packageService.createPackage(dto);
     return this.successMessageResponse('Package created successfully', { id: Number(pkg.id) });
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a package (full replace of nested data)' })
+  @ApiParam({ name: 'id', type: Number, description: 'Package id' })
+  @ApiBody({ type: CreatePackageDto, description: 'Package and nested data' })
+  @ApiResponse({ status: 200, description: 'Package updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request - validation or not found' })
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: CreatePackageDto) {
+    const pkg = await this.packageService.updatePackage(id, dto);
+    return this.successMessageResponse('Package updated successfully', { id: Number(pkg.id) });
   }
 
   @ApiBearerAuth()
