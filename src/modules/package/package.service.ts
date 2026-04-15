@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager, FindOptionsWhere, In } from 'typeorm';
 import { DateTime } from 'luxon';
@@ -97,7 +97,7 @@ export class PackageService extends BaseService {
       const activities: PackageActivity[] = [];
       for (let i = 0; i < savedDays.length; i++) {
         const dayDto = dto.itinerary[i];
-        for (const activityDto of dayDto.activities) {
+        for (const activityDto of dayDto.activities ?? []) {
           activities.push(
             manager.create(PackageActivity, {
               itinerary_day_id: savedDays[i].id,
@@ -113,7 +113,7 @@ export class PackageService extends BaseService {
       const accommodations: PackageDayAccommodation[] = [];
       for (let i = 0; i < savedDays.length; i++) {
         const dayDto = dto.itinerary[i];
-        for (const accommodationDto of dayDto.accommodations) {
+        for (const accommodationDto of dayDto.accommodations ?? []) {
           accommodations.push(
             manager.create(PackageDayAccommodation, {
               itinerary_day_id: savedDays[i].id,
@@ -158,6 +158,153 @@ export class PackageService extends BaseService {
 
   async create(dto: CreatePackageDto): Promise<Package> {
     return this.createPackage(dto);
+  }
+
+  async updatePackageStatus(id: number, status: PackageStatus): Promise<Package> {
+    const pkg = await this.entityManager.findOne(Package, { where: { id } });
+    if (!pkg) {
+      throw new NotFoundException('Package not found');
+    }
+    const upper = String(status).toUpperCase() as PackageStatus;
+    if (!Object.values(PackageStatus).includes(upper)) {
+      throw new BadRequestException('Invalid package status');
+    }
+    pkg.status = upper;
+    return this.entityManager.save(Package, pkg);
+  }
+
+  /**
+   * Full replace of pricing, itinerary (with activities/accommodations), inclusions, and exclusions.
+   * Gallery images and featured_image are preserved; use upload endpoint to add images.
+   */
+  async updatePackage(id: number, dto: CreatePackageDto): Promise<Package> {
+    return this.entityManager.transaction(async (manager) => {
+      const pkg = await manager.findOne(Package, { where: { id } });
+      if (!pkg) {
+        throw new BadRequestException('Package not found');
+      }
+
+      const destination = await manager.findOne(Destination, {
+        where: { id: dto.destination_id },
+      });
+      if (!destination) {
+        throw new BadRequestException('Destination not found');
+      }
+
+      if (dto.min_pax > dto.max_pax) {
+        throw new BadRequestException('min_pax cannot be greater than max_pax');
+      }
+
+      let slug = pkg.slug;
+      if (dto.slug !== undefined && dto.slug !== null && String(dto.slug).trim() !== '') {
+        slug = await this.resolveSlug(manager, String(dto.slug).trim(), id);
+      }
+
+      await manager.delete(PackagePricing, { package_id: id });
+      await manager.delete(PackageItineraryDay, { package_id: id });
+      await manager.delete(PackageInclusion, { package_id: id });
+      await manager.delete(PackageExclusion, { package_id: id });
+
+      pkg.destination_id = dto.destination_id;
+      pkg.title = dto.title;
+      pkg.slug = slug;
+      pkg.description = dto.description;
+      pkg.overview = dto.overview ?? null;
+      pkg.duration_days = dto.duration_days;
+      pkg.min_pax = dto.min_pax;
+      pkg.max_pax = dto.max_pax;
+      pkg.travel_year = dto.travel_year;
+      pkg.base_price = dto.base_price;
+      pkg.currency = dto.currency ?? 'USD';
+      pkg.status = dto.status ?? pkg.status;
+
+      await manager.save(Package, pkg);
+
+      const pricingRows = (dto.pricing ?? []).map((row) =>
+        manager.create(PackagePricing, {
+          package_id: pkg.id,
+          tier: row.tier,
+          pax: row.is_single_supplement ? null : row.pax,
+          price: row.price,
+          is_single_supplement: row.is_single_supplement ?? false,
+        }),
+      );
+      if (pricingRows.length > 0) {
+        await manager.save(PackagePricing, pricingRows);
+      }
+
+      const dayEntities = (dto.itinerary ?? []).map((dayDto) =>
+        manager.create(PackageItineraryDay, {
+          package_id: pkg.id,
+          day_number: dayDto.day_number,
+          title: dayDto.title,
+          description: dayDto.description,
+          meals: dayDto.meals ?? null,
+        }),
+      );
+      const savedDays =
+        dayEntities.length > 0 ? await manager.save(PackageItineraryDay, dayEntities) : [];
+
+      const activities: PackageActivity[] = [];
+      for (let i = 0; i < savedDays.length; i++) {
+        const dayDto = dto.itinerary[i];
+        for (const activityDto of dayDto.activities ?? []) {
+          activities.push(
+            manager.create(PackageActivity, {
+              itinerary_day_id: savedDays[i].id,
+              name: activityDto.name,
+            }),
+          );
+        }
+      }
+      if (activities.length > 0) {
+        await manager.save(PackageActivity, activities);
+      }
+
+      const accommodations: PackageDayAccommodation[] = [];
+      for (let i = 0; i < savedDays.length; i++) {
+        const dayDto = dto.itinerary[i];
+        for (const accommodationDto of dayDto.accommodations ?? []) {
+          accommodations.push(
+            manager.create(PackageDayAccommodation, {
+              itinerary_day_id: savedDays[i].id,
+              tier: accommodationDto.tier,
+              name: accommodationDto.name,
+            }),
+          );
+        }
+      }
+      if (accommodations.length > 0) {
+        await manager.save(PackageDayAccommodation, accommodations);
+      }
+
+      const inclusions = (dto.inclusions ?? []).map((inc, index) =>
+        manager.create(PackageInclusion, {
+          package_id: pkg.id,
+          text: inc.text,
+          sort_order: inc.sort_order ?? index,
+        }),
+      );
+      if (inclusions.length > 0) {
+        await manager.save(PackageInclusion, inclusions);
+      }
+
+      const exclusions = (dto.exclusions ?? []).map((exc, index) =>
+        manager.create(PackageExclusion, {
+          package_id: pkg.id,
+          text: exc.text,
+          sort_order: exc.sort_order ?? index,
+        }),
+      );
+      if (exclusions.length > 0) {
+        await manager.save(PackageExclusion, exclusions);
+      }
+
+      return manager.findOne(Package, {
+        where: { id: pkg.id },
+        relations: { destination: true },
+      }) as Promise<Package>;
+    });
   }
 
   async getPackageById(id: number): Promise<any> {
@@ -562,15 +709,29 @@ export class PackageService extends BaseService {
       .replace(/[^a-z0-9-]/g, '');
   }
 
-  private async resolveSlug(entityManager: EntityManager, baseSlug: string): Promise<string> {
+  private async resolveSlug(
+    entityManager: EntityManager,
+    baseSlug: string,
+    excludePackageId?: number,
+  ): Promise<string> {
     if (!baseSlug) return 'package';
     let slug = baseSlug;
     let suffix = 0;
-    while (await entityManager.findOne(Package, { where: { slug } })) {
+    while (true) {
+      const found = await entityManager.findOne(Package, { where: { slug } });
+      if (!found) {
+        return slug;
+      }
+      if (
+        excludePackageId !== undefined &&
+        excludePackageId !== null &&
+        Number(found.id) === Number(excludePackageId)
+      ) {
+        return slug;
+      }
       suffix += 1;
       slug = `${baseSlug}-${suffix}`;
     }
-    return slug;
   }
 
   private ensureCloudinaryConfigured(): void {

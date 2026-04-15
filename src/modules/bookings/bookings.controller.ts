@@ -118,7 +118,7 @@ export class BookingsController extends BaseController {
   @UseGuards(JwtAuthGuard)
   @Patch('bookings/:id')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Update a booking (status, guests, message, special requests)' })
+  @ApiOperation({ summary: 'Update a booking (status, message, special requests)' })
   @ApiParam({ name: 'id', type: Number, description: 'Booking id' })
   @ApiBody({ type: UpdateBookingDto })
   @ApiResponse({ status: 200, description: 'Booking updated successfully' })

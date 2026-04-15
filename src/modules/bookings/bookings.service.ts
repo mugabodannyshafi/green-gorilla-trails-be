@@ -91,7 +91,10 @@ export class BookingsService extends BaseService {
   }
 
   async updateBooking(id: number, dto: UpdateBookingDto): Promise<Booking> {
-    const booking = await this.entityManager.findOne(Booking, { where: { id } });
+    const booking = await this.entityManager.findOne(Booking, {
+      where: { id },
+      relations: { package: true },
+    });
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
@@ -109,7 +112,28 @@ export class BookingsService extends BaseService {
       booking.number_of_guests = dto.number_of_guests;
     }
 
-    return this.entityManager.save(Booking, booking);
+    const saved = await this.entityManager.save(Booking, booking);
+
+    await this.emailService.sendBookingCustomerUpdateEmail(saved);
+
+    return saved;
+  }
+
+  /**
+   * travel_date is stored as YYYYMMDD (see toTravelDateInt), not Unix seconds.
+   */
+  private formatTravelDateYyyymmdd(n: number): string {
+    const v = Math.floor(Number(n));
+    if (!Number.isFinite(v) || v < 10000101 || v > 99991231) {
+      return String(n);
+    }
+    const year = Math.floor(v / 10000);
+    const month = Math.floor((v % 10000) / 100);
+    const day = v % 100;
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return String(n);
+    }
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   }
 
   private serializeBookingListItem(booking: Booking): Record<string, unknown> {
@@ -123,7 +147,7 @@ export class BookingsService extends BaseService {
             slug: booking.package.slug,
           }
         : null,
-      travel_date: DateTime.fromSeconds(booking.travel_date).toFormat('yyyy-LL-dd'),
+      travel_date: this.formatTravelDateYyyymmdd(booking.travel_date),
       customer_name: booking.customer_name,
       email: booking.email,
       number_of_guests: booking.number_of_guests,

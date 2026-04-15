@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   UploadedFiles,
@@ -27,6 +28,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { PackageService } from './package.service';
 import { CreatePackageDto } from './dto/create-package.dto';
+import { UpdatePackageStatusDto } from './dto/update-package-status.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { BaseController, PaginationData } from '@rwanda360/rwanda360-service-sdk';
 import { GetPaginationData } from 'src/common/decorators/get-pagination-data.decorator';
@@ -50,6 +52,35 @@ export class PackageController extends BaseController {
   async create(@Body() dto: CreatePackageDto) {
     const pkg = await this.packageService.createPackage(dto);
     return this.successMessageResponse('Package created successfully', { id: Number(pkg.id) });
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update package publication status only' })
+  @ApiParam({ name: 'id', type: Number, description: 'Package id' })
+  @ApiBody({ type: UpdatePackageStatusDto })
+  @ApiResponse({ status: 200, description: 'Package status updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request - validation or not found' })
+  @ApiResponse({ status: 404, description: 'Package not found' })
+  async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePackageStatusDto) {
+    const pkg = await this.packageService.updatePackageStatus(id, dto.status);
+    return this.successMessageResponse('Package status updated successfully', { id: Number(pkg.id) });
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update a package (full replace of nested data)' })
+  @ApiParam({ name: 'id', type: Number, description: 'Package id' })
+  @ApiBody({ type: CreatePackageDto, description: 'Package and nested data' })
+  @ApiResponse({ status: 200, description: 'Package updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad Request - validation or not found' })
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: CreatePackageDto) {
+    const pkg = await this.packageService.updatePackage(id, dto);
+    return this.successMessageResponse('Package updated successfully', { id: Number(pkg.id) });
   }
 
   @ApiBearerAuth()

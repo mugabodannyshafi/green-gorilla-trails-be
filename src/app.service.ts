@@ -3,7 +3,7 @@ import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { AdminSeeder } from './database/seeders/admin.seeder';
 import { DestinationSeeder } from './database/seeders/destination.seeder';
-import { PackageSeeder } from './database/seeders/package.seeder';
+import { PackageSeeder} from './database/seeders/package.seeder';
 
 @Injectable()
 export class AppService {
