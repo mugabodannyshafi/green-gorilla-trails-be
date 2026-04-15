@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EntityManager, FindOptionsWhere, In } from 'typeorm';
 import { DateTime } from 'luxon';
@@ -97,7 +97,7 @@ export class PackageService extends BaseService {
       const activities: PackageActivity[] = [];
       for (let i = 0; i < savedDays.length; i++) {
         const dayDto = dto.itinerary[i];
-        for (const activityDto of dayDto.activities) {
+        for (const activityDto of dayDto.activities ?? []) {
           activities.push(
             manager.create(PackageActivity, {
               itinerary_day_id: savedDays[i].id,
@@ -113,7 +113,7 @@ export class PackageService extends BaseService {
       const accommodations: PackageDayAccommodation[] = [];
       for (let i = 0; i < savedDays.length; i++) {
         const dayDto = dto.itinerary[i];
-        for (const accommodationDto of dayDto.accommodations) {
+        for (const accommodationDto of dayDto.accommodations ?? []) {
           accommodations.push(
             manager.create(PackageDayAccommodation, {
               itinerary_day_id: savedDays[i].id,
@@ -158,6 +158,19 @@ export class PackageService extends BaseService {
 
   async create(dto: CreatePackageDto): Promise<Package> {
     return this.createPackage(dto);
+  }
+
+  async updatePackageStatus(id: number, status: PackageStatus): Promise<Package> {
+    const pkg = await this.entityManager.findOne(Package, { where: { id } });
+    if (!pkg) {
+      throw new NotFoundException('Package not found');
+    }
+    const upper = String(status).toUpperCase() as PackageStatus;
+    if (!Object.values(PackageStatus).includes(upper)) {
+      throw new BadRequestException('Invalid package status');
+    }
+    pkg.status = upper;
+    return this.entityManager.save(Package, pkg);
   }
 
   /**
@@ -235,7 +248,7 @@ export class PackageService extends BaseService {
       const activities: PackageActivity[] = [];
       for (let i = 0; i < savedDays.length; i++) {
         const dayDto = dto.itinerary[i];
-        for (const activityDto of dayDto.activities) {
+        for (const activityDto of dayDto.activities ?? []) {
           activities.push(
             manager.create(PackageActivity, {
               itinerary_day_id: savedDays[i].id,
@@ -251,7 +264,7 @@ export class PackageService extends BaseService {
       const accommodations: PackageDayAccommodation[] = [];
       for (let i = 0; i < savedDays.length; i++) {
         const dayDto = dto.itinerary[i];
-        for (const accommodationDto of dayDto.accommodations) {
+        for (const accommodationDto of dayDto.accommodations ?? []) {
           accommodations.push(
             manager.create(PackageDayAccommodation, {
               itinerary_day_id: savedDays[i].id,

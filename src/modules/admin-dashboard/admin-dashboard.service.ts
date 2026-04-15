@@ -48,13 +48,17 @@ export class AdminDashboardService {
   async getTrends(): Promise<DashboardTrendsDto> {
     const confirmedStatuses = [BookingStatus.CONFIRMED, BookingStatus.COMPLETED];
 
+    // travel_date is YYYYMMDD int (see bookings create), not Unix seconds
+    const travelDateExpr =
+      "DATE_FORMAT(STR_TO_DATE(LPAD(CAST(b.travel_date AS CHAR), 8, '0'), '%Y%m%d'), '%Y-%m-%d')";
+
     const bookingsOverTimeRaw = await this.entityManager
       .createQueryBuilder(Booking, 'b')
       .where('b.status IN (:...statuses)', { statuses: confirmedStatuses })
-      .select("DATE_FORMAT(FROM_UNIXTIME(b.travel_date), '%Y-%m-%d')", 'date')
+      .select(travelDateExpr, 'date')
       .addSelect('COUNT(*)', 'bookings')
-      .groupBy("DATE_FORMAT(FROM_UNIXTIME(b.travel_date), '%Y-%m-%d')")
-      .orderBy("DATE_FORMAT(FROM_UNIXTIME(b.travel_date), '%Y-%m-%d')", 'ASC')
+      .groupBy(travelDateExpr)
+      .orderBy(travelDateExpr, 'ASC')
       .getRawMany<{ date: string; bookings: string }>();
 
     const bookingsOverTime: BookingsOverTimePointDto[] = bookingsOverTimeRaw.map((row) => {

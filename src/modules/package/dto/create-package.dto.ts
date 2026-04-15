@@ -15,7 +15,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PackageStatus } from '../../../database/entities/2_package.entity';
 import { PackageAccommodationTier } from '../../../database/entities/17_package_accommodation_option.entity';
 import { MealType } from '../../../database/entities/18_package_activity.entity';
@@ -74,7 +74,7 @@ export class CreatePackagePricingDto {
   })
   @ValidateIf((o: CreatePackagePricingDto) => !o.is_single_supplement)
   @IsInt()
-  @Min(2)
+  @Min(1)
   pax?: number;
 
   @ApiProperty({
@@ -166,23 +166,25 @@ export class CreatePackageItineraryDayDto {
   @IsEnum(MealType, { each: true })
   meals?: MealType[];
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [CreatePackageActivityDto],
-    description: 'Structured list of activities',
+    description: 'Structured list of activities (omit or use [] when none for this day)',
     example: [{ name: 'Drive to Volcanoes National Park' }],
+    default: [],
   })
+  @Transform(({ value }) => (Array.isArray(value) ? value : []))
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreatePackageActivityDto)
   activities: CreatePackageActivityDto[];
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [CreatePackageDayAccommodationDto],
-    description: 'Accommodation options for this itinerary day',
+    description: 'Accommodation options for this day (omit or use [] when none)',
+    default: [],
   })
+  @Transform(({ value }) => (Array.isArray(value) ? value : []))
   @IsArray()
-  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreatePackageDayAccommodationDto)
   accommodations: CreatePackageDayAccommodationDto[];
