@@ -4,12 +4,25 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from '@rwanda360/rwanda360-service-sdk';
 
+/** Comma-separated origins. If unset, uses defaults for local + known deploy hosts. */
+function resolveCorsOrigins(): string[] {
+  const raw = process.env.CORS_ORIGINS?.trim();
+  if (raw) {
+    return raw.split(',').map((o) => o.trim()).filter(Boolean);
+  }
+  return [
+    'http://localhost:3000',
+    'https://green-gorilla-trails.vercel.app',
+    'https://www.greengorillatrails.com',
+    'https://greengorillatrails.com',
+  ];
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS
   app.enableCors({
-    origin: ['http://localhost:3001','https://green-gorilla-trails.vercel.app'],
+    origin: resolveCorsOrigins(),
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

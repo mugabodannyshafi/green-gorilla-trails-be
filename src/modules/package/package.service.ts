@@ -175,7 +175,8 @@ export class PackageService extends BaseService {
 
   /**
    * Full replace of pricing, itinerary (with activities/accommodations), inclusions, and exclusions.
-   * Gallery images and featured_image are preserved; use upload endpoint to add images.
+   * Gallery rows are unchanged here; use POST .../images to add images and
+   * PATCH .../gallery/order to set order (first image = featured_image).
    */
   async updatePackage(id: number, dto: CreatePackageDto): Promise<Package> {
     return this.entityManager.transaction(async (manager) => {
@@ -622,10 +623,66 @@ export class PackageService extends BaseService {
     return this.paginate(formattedPackages, count, pagination);
   }
 
+  /**
+   * featured_image always matches the first gallery row by sort_order (then id).
+   */
+  private async syncFeaturedImageFromGallery(
+    manager: EntityManager,
+    packageId: number,
+  ): Promise<void> {
+    const pkg = await manager.findOne(Package, { where: { id: packageId } });
+    if (!pkg) return;
+    const firstRows = await manager.find(PackageGalleryImage, {
+      where: { package_id: packageId },
+      order: { sort_order: 'ASC', id: 'ASC' },
+      take: 1,
+    });
+    pkg.featured_image = firstRows[0]?.url ?? null;
+    await manager.save(Package, pkg);
+  }
+
+  async reorderPackageGallery(packageId: number, imageIds: number[]): Promise<void> {
+    return this.entityManager.transaction(async (manager) => {
+      const pkg = await manager.findOne(Package, { where: { id: packageId } });
+      if (!pkg) {
+        throw new BadRequestException('Package not found');
+      }
+      const rows = await manager.find(PackageGalleryImage, {
+        where: { package_id: packageId },
+      });
+      if (rows.length === 0) {
+        throw new BadRequestException('Package has no gallery images to reorder');
+      }
+      if (rows.length !== imageIds.length) {
+        throw new BadRequestException(
+          'image_ids must include every gallery image for this package exactly once',
+        );
+      }
+      const rowById = new Map(rows.map((r) => [Number(r.id), r]));
+      const seen = new Set<number>();
+      for (const rawId of imageIds) {
+        const id = Number(rawId);
+        if (seen.has(id)) {
+          throw new BadRequestException('Duplicate image id in image_ids');
+        }
+        seen.add(id);
+        if (!rowById.has(id)) {
+          throw new BadRequestException('Invalid image id for this package');
+        }
+      }
+      for (let i = 0; i < imageIds.length; i++) {
+        const row = rowById.get(Number(imageIds[i]))!;
+        row.sort_order = i;
+        await manager.save(PackageGalleryImage, row);
+      }
+      await this.syncFeaturedImageFromGallery(manager, packageId);
+    });
+  }
+
   async addPackageImages(
     packageId: number,
     files: Express.Multer.File[],
-  ): Promise<{ featured_image: string | null; uploaded: { url: string; sort_order: number }[] }> {
+  ): Promise<{ featured_image: string | null; uploaded: { id: number; url: string; sort_order: number }[] }> {
     if (!files || files.length === 0) {
       throw new BadRequestException('No images uploaded');
     }
@@ -676,7 +733,7 @@ export class PackageService extends BaseService {
 
       const uploadedUrls = await Promise.all(files.map((f) => uploadOne(f)));
 
-      const created: { url: string; sort_order: number }[] = [];
+      const created: { id: number; url: string; sort_order: number }[] = [];
       for (let i = 0; i < uploadedUrls.length; i++) {
         const sort_order = baseSortOrder + i;
         const img = manager.create(PackageGalleryImage, {
@@ -685,17 +742,15 @@ export class PackageService extends BaseService {
           alt: files[i].originalname || null,
           sort_order,
         });
-        await manager.save(PackageGalleryImage, img);
-        created.push({ url: uploadedUrls[i], sort_order });
+        const saved = await manager.save(PackageGalleryImage, img);
+        created.push({ id: Number(saved.id), url: uploadedUrls[i], sort_order });
       }
 
-      if (!pkg.featured_image && uploadedUrls.length > 0) {
-        pkg.featured_image = uploadedUrls[0];
-        await manager.save(Package, pkg);
-      }
+      await this.syncFeaturedImageFromGallery(manager, packageId);
+      const freshPkg = await manager.findOne(Package, { where: { id: packageId } });
 
       return {
-        featured_image: pkg.featured_image ?? null,
+        featured_image: freshPkg?.featured_image ?? null,
         uploaded: created,
       };
     });

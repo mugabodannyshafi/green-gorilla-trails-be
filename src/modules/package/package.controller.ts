@@ -28,6 +28,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { PackageService } from './package.service';
 import { CreatePackageDto } from './dto/create-package.dto';
+import { ReorderPackageGalleryDto } from './dto/reorder-package-gallery.dto';
 import { UpdatePackageStatusDto } from './dto/update-package-status.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { BaseController, PaginationData } from '@rwanda360/rwanda360-service-sdk';
@@ -67,6 +68,27 @@ export class PackageController extends BaseController {
   async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePackageStatusDto) {
     const pkg = await this.packageService.updatePackageStatus(id, dto.status);
     return this.successMessageResponse('Package status updated successfully', { id: Number(pkg.id) });
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/gallery/order')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reorder package gallery images',
+    description:
+      'Sets sort order and updates featured_image to match the first image in the list. Must include every gallery image id for this package exactly once.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Package id' })
+  @ApiBody({ type: ReorderPackageGalleryDto })
+  @ApiResponse({ status: 200, description: 'Gallery order updated' })
+  @ApiResponse({ status: 400, description: 'Bad Request - invalid ids or count mismatch' })
+  async reorderGallery(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReorderPackageGalleryDto,
+  ) {
+    await this.packageService.reorderPackageGallery(id, dto.image_ids);
+    return this.successMessageResponse('Gallery order updated successfully', { id });
   }
 
   @ApiBearerAuth()
