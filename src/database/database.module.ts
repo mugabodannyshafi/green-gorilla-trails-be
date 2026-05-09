@@ -14,7 +14,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // set to false in production
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsTableName: 'migrations',
+        // Synchronize only in development, use migrations in production
+        synchronize:
+          configService.get<string>('NODE_ENV') === 'development'
+            ? configService.get<boolean>('DB_SYNCHRONIZE', true)
+            : false,
+        migrationsRun: configService.get<string>('NODE_ENV') === 'production' ? true : false,
+        logging: configService.get<string>('NODE_ENV') === 'development',
+        charset: 'utf8mb4',
       }),
       inject: [ConfigService],
     }),
