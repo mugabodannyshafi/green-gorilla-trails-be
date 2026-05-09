@@ -17,7 +17,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json --detectOpenHandles --runInBand"
+    "test:e2e": "jest --config ./test/jest-e2e.json --detectOpenHandles --runInBand",
+    "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
+    "migration:generate": "npm run typeorm -- migration:generate src/database/migrations/${npm_config_name}",
+    "migration:run": "npm run typeorm -- migration:run",
+    "migration:revert": "npm run typeorm -- migration:revert",
+    "migration:show": "npm run typeorm -- migration:show"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.17",
@@ -33,6 +38,8 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "cloudinary": "^2.9.0",
+    "dotenv": "^17.4.2",
+    "install": "^0.13.0",
     "libphonenumber-js": "^1.12.40",
     "luxon": "^3.7.2",
     "multer": "^2.1.1",
