@@ -20,10 +20,10 @@ export class AppService {
   }
 
   async onApplicationBootstrap() {
+    await this.destinationSeeder.run(this.db);
     if (process.env.NODE_ENV !== 'production') {
-      await this.destinationSeeder.run(this.db);
       await this.packageSeeder.run(this.db);
-      await this.adminSeeder.run(this.db);
     }
+    await this.adminSeeder.run(this.db);
   }
 }
