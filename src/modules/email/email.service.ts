@@ -68,7 +68,7 @@ export class EmailService {
   }
 
   async sendBookingNotificationEmail(booking: Booking): Promise<void> {
-    const contactToEmail = 'mugabodannyshafi@gmail.com';
+    const contactToEmail = process.env.ADMIN_EMAIL;
     try {
       const { data, error } = await this.resend.emails.send({
         from: this.fromEmail,
