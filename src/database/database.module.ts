@@ -7,24 +7,25 @@ import { parseEnvBool } from './utils/parse-env-bool';
   imports: [
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
-        // Default off: env is always a string; `"false"` was truthy before parseEnvBool.
-        // Turn on only when DB_SYNCHRONIZE=true (e.g. empty local DB).
-        const syncDefault = false;
-        return {
-          type: 'mysql',
-          host: configService.get<string>('DB_HOST'),
-          port: Number(configService.get<string>('DB_PORT') ?? configService.get<number>('DB_PORT') ?? 3306),
-          username: configService.get<string>('DB_USERNAME'),
-          password: configService.get<string>('DB_PASSWORD'),
-          database: configService.get<string>('DB_NAME'),
-          entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-          synchronize: parseEnvBool(
-            configService.get<string>('DB_SYNCHRONIZE'),
-            syncDefault,
-          ),
-        };
-      },
+      useFactory: async (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_NAME'),
+        entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsTableName: 'migrations',
+        // Env is always a string; `"false"` must not be passed raw to TypeORM (it is truthy in JS).
+        synchronize:
+          configService.get<string>('NODE_ENV') === 'development'
+            ? parseEnvBool(configService.get<string>('DB_SYNCHRONIZE'), true)
+            : false,
+        migrationsRun: configService.get<string>('NODE_ENV') === 'production' ? true : false,
+        logging: configService.get<string>('NODE_ENV') === 'development',
+        charset: 'utf8mb4',
+      }),
       inject: [ConfigService],
     }),
   ],

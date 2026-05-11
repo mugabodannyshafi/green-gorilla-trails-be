@@ -97,7 +97,12 @@ export class BlogsController extends BaseController {
     enum: BlogPostStatus,
     description: 'Filter by DRAFT or PUBLISHED',
   })
-  @ApiQuery({ name: 'query', required: false, type: String, description: 'Search title or excerpt' })
+  @ApiQuery({
+    name: 'query',
+    required: false,
+    type: String,
+    description: 'Search title or excerpt',
+  })
   @ApiResponse({ status: 200, description: 'Posts retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listPostsForAdmin(

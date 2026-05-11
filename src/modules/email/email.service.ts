@@ -407,8 +407,7 @@ export class EmailService {
     const pkgTitle = this.escapeHtml(booking.package?.title ?? `Package #${booking.package_id}`);
     const preferredDate = this.formatBookingTravelDateYyyymmdd(booking.travel_date);
     const status = this.escapeHtml(String(booking.status));
-    const message =
-      (this.escapeHtml(booking.message).trim() || '—').replace(/\n/g, '<br/>');
+    const message = (this.escapeHtml(booking.message).trim() || '—').replace(/\n/g, '<br/>');
 
     return `<!DOCTYPE html>
 <html lang="en">

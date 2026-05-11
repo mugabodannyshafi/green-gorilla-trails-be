@@ -67,7 +67,9 @@ export class PackageController extends BaseController {
   @ApiResponse({ status: 404, description: 'Package not found' })
   async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdatePackageStatusDto) {
     const pkg = await this.packageService.updatePackageStatus(id, dto.status);
-    return this.successMessageResponse('Package status updated successfully', { id: Number(pkg.id) });
+    return this.successMessageResponse('Package status updated successfully', {
+      id: Number(pkg.id),
+    });
   }
 
   @ApiBearerAuth()
