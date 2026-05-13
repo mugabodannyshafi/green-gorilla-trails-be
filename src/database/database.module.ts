@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { parseEnvBool } from './utils/parse-env-bool';
 
 @Module({
   imports: [
@@ -16,10 +17,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         migrationsTableName: 'migrations',
-        // Synchronize only in development, use migrations in production
+        // Env is always a string; `"false"` must not be passed raw to TypeORM (it is truthy in JS).
         synchronize:
           configService.get<string>('NODE_ENV') === 'development'
-            ? configService.get<boolean>('DB_SYNCHRONIZE', true)
+            ? parseEnvBool(configService.get<string>('DB_SYNCHRONIZE'), true)
             : false,
         migrationsRun: configService.get<string>('NODE_ENV') === 'production' ? true : false,
         logging: configService.get<string>('NODE_ENV') === 'development',

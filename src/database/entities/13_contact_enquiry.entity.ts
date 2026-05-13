@@ -5,6 +5,7 @@ export enum ContactSubjectKey {
   GENERAL = 'GENERAL',
   GORILLA = 'GORILLA',
   SAFARI = 'SAFARI',
+  GROUP = 'GROUP',
   OTHER = 'OTHER',
 }
 
@@ -40,6 +41,14 @@ export class ContactEnquiry extends EntityModel {
     nullable: false,
   })
   subject_key: ContactSubjectKey;
+
+  /** Exact subject line from the form (e.g. "Gorilla trekking") */
+  @Column({
+    type: 'varchar',
+    length: 512,
+    nullable: false,
+  })
+  subject_label: string;
 
   @Column({
     type: 'text',
