@@ -5,10 +5,17 @@ import * as bcrypt from 'bcryptjs';
 
 export class AdminSeeder implements EntitySeeder {
   async run(db: EntityManager): Promise<void> {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminEmail = process.env.ADMIN_EMAIL?.trim();
+    const adminPassword = process.env.ADMIN_PASSWORD?.trim();
     const adminPhone = process.env.ADMIN_PHONE ?? '0000000000';
     const adminProfilePhotoUrl = process.env.ADMIN_PROFILE_PHOTO_URL ?? '';
+
+    if (!adminEmail || !adminPassword) {
+      console.warn(
+        '[AdminSeeder] Skipped: set ADMIN_EMAIL and ADMIN_PASSWORD in .env to create or update the system admin.',
+      );
+      return;
+    }
 
     let admin = await db.findOne(User, {
       where: { email: adminEmail },

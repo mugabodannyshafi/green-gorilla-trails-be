@@ -37,8 +37,11 @@ export class BookingsService extends BaseService {
     });
 
     const saved = await this.entityManager.save(Booking, booking);
+    saved.package = pkg;
 
     await this.emailService.sendBookingNotificationEmail(saved);
+
+    await this.emailService.sendBookingAcknowledgementEmail(saved);
 
     return saved;
   }
