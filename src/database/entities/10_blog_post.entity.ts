@@ -8,7 +8,7 @@ export enum BlogPostStatus {
 }
 
 /** Lowercase: MySQL on Windows stores `blogpost`; PascalCase breaks TypeORM sync existence checks. */
-@Entity({ name: 'blogpost' })
+@Entity({ name: 'BlogPost' })
 @Index(['status'])
 @Index(['published_at'])
 @Index(['author_id'])
